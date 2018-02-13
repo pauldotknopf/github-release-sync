@@ -6,6 +6,8 @@ import (
 	"os"
 	"path"
 
+	"github.com/google/go-github/github"
+
 	"github.com/urfave/cli"
 )
 
@@ -14,6 +16,8 @@ func main() {
 	var owner string
 	var repo string
 	var tag string
+	var overwrite bool
+	var prune bool
 	var dir string
 
 	app := cli.NewApp()
@@ -40,6 +44,16 @@ func main() {
 			Name:        "tag",
 			Usage:       "the tagged release",
 			Destination: &tag,
+		},
+		cli.BoolFlag{
+			Name:        "overwrite",
+			Usage:       "overwrite files that already exist on github",
+			Destination: &overwrite,
+		},
+		cli.BoolFlag{
+			Name:        "prune",
+			Usage:       "delete release assets on the remote that don't exist locally",
+			Destination: &prune,
 		},
 		cli.StringFlag{
 			Name:        "dir",
@@ -92,24 +106,52 @@ func main() {
 			if file.IsDir() {
 				continue
 			}
-			found := false
+			var releaseAsset *github.ReleaseAsset
 			for _, asset := range assets {
 				if asset.GetName() == file.Name() {
-					found = true
+					releaseAsset = asset
 				}
 			}
-			if found {
-				fmt.Printf("%s already uploaded, skipping...\n", file.Name())
-				continue
+			if releaseAsset != nil {
+				fmt.Printf("%s already uploaded\n", file.Name())
+				//continue
+				if overwrite {
+					fmt.Println("overwriting...")
+					fmt.Printf("deleting existing asset %s...\n", file.Name())
+					err = DeleteAsset(owner, repo, releaseAsset.GetID(), accessToken)
+					if err != nil {
+						return err
+					}
+				} else {
+					continue
+				}
 			}
-			fmt.Printf("uplading %s\n", file.Name())
+			fmt.Printf("uploading %s\n", file.Name())
 			err = UploadAsset(owner, repo, release.GetID(), path.Join(dir, file.Name()), accessToken)
 			if err != nil {
 				return err
 			}
 		}
 
-		fmt.Println(release.GetTagName())
+		if prune {
+			fmt.Println("checking for remote files to prune...")
+			// Let's see if any remote assets need to be deleted.
+			for _, asset := range assets {
+				found := false
+				for _, file := range files {
+					if file.Name() == asset.GetName() {
+						found = true
+					}
+				}
+				if !found {
+					fmt.Printf("pruning asset %s\n", asset.GetName())
+					err = DeleteAsset(owner, repo, asset.GetID(), accessToken)
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
 
 		return nil
 	}

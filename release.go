@@ -33,6 +33,18 @@ func GetReleaseAssets(owner, repo string, releaseID int64) ([]*github.ReleaseAss
 	return assets, nil
 }
 
+// DeleteAsset DeleteAsset
+func DeleteAsset(owner, repo string, assetID int64, accessToken string) error {
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: accessToken},
+	)
+	tc := oauth2.NewClient(context.Background(), ts)
+	client := github.NewClient(tc)
+
+	_, err := client.Repositories.DeleteReleaseAsset(context.Background(), owner, repo, assetID)
+	return err
+}
+
 // UploadAsset UploadAsset
 func UploadAsset(owner, repo string, releaseID int64, filePath, accessToken string) error {
 	ts := oauth2.StaticTokenSource(
