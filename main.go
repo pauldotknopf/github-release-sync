@@ -21,8 +21,8 @@ func main() {
 	var dir string
 
 	app := cli.NewApp()
-	app.Name = "darch"
-	app.Usage = "A tool used to build, boot and share stateless Arch images."
+	app.Name = "github-release-sync"
+	app.Usage = "Sync a directory of files with a GitHub release."
 	app.Version = "0.0.1"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
