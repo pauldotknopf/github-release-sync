@@ -27,7 +27,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:        "access-token",
-			Usage:       "the github access token to use the api",
+			Usage:       "the github access token to use the api, $GITHUB_ACCESS_TOKEN if empty",
 			Destination: &accessToken,
 		},
 		cli.StringFlag{
@@ -64,7 +64,10 @@ func main() {
 	}
 	app.Action = func(clicontext *cli.Context) error {
 		if len(accessToken) == 0 {
-			return fmt.Errorf("access token is required")
+			accessToken = os.Getenv("GITHUB_ACCESS_TOKEN")
+			if len(accessToken) == 0 {
+				return fmt.Errorf("access token is required")
+			}
 		}
 		if len(owner) == 0 {
 			return fmt.Errorf("owner is required")
